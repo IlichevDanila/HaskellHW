@@ -30,7 +30,7 @@ extractCycle x = let (cycle, remain) = splitAt (getPairedBracketIdx x 0) x in
     (tail (take (length cycle - 1) cycle), remain)
 
 {-
-Тип для "состояния" интерпретации. В данный момент содержит только memory,
+Тип для "состояния" исполнителя. В данный момент содержит только memory,
 но при ином устройстве вычислений может содержать и текущее положение каретки на ленте
 -}
 data State = State {memory :: Memory}
@@ -98,13 +98,15 @@ sub state = do
         then return $ State (255:xs)
         else return $ State ((x-1):xs)
 
---Сдвигает каретку вправо по ленте
+--Сдвигает каретку вправо по ленте. В данный момент по факту производит циклический
+--сдвиг ленты влево
 moveRight :: State -> IO State
 moveRight state =
     let x:xs = memory state in
         return $ State (xs ++ [x])
 
---Сдвигает каретку влево по ленте
+--Сдвигает каретку влево по ленте. В данный момент по факту производит циклический
+--сдвиг ленты вправо
 moveLeft :: State -> IO State
 moveLeft state =
     let mem = memory state in
@@ -169,6 +171,12 @@ process state ('[':cs) = do
 --циклов
 process state (']':cs) = do
     putStrLn "Excess ']' encountered"
+    process state cs
+
+--Сюда уже совсем никогда не должна доходить программа. Это правило на случай, если
+--по какой-либо причине не произойдет фильтрация последовательности инструкций
+process state (c:cs) = do
+    putStrLn $ "Unexpected command:" ++ c
     process state cs
 
 
