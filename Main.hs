@@ -1,11 +1,15 @@
-import Data.Char
+import Data.Char (ord, chr)
 import System.Environment (getArgs)
 
 type Memory = [Int]
 type Instructions = String
 
+--TODO: Исправить ситуацию с (']':xs) count где count < 0
+
 getPairedBracketIdx :: Instructions -> Int -> Int
+getPairedBracketIdx [] count = 0
 getPairedBracketIdx (']':xs) 1 = 1
+getPairedBracketIdx (']':xs) count = 1 + getPairedBracketIdx xs (count - 1)
 getPairedBracketIdx ('[':xs) count = 1 + getPairedBracketIdx xs (count + 1)
 getPairedBracketIdx (_:xs) count = 1 + getPairedBracketIdx xs count
 
@@ -19,7 +23,7 @@ first :: State -> Int
 first = head . memory
 
 init_state :: State
-init_state = State $ take 10 $ repeat 0
+init_state = State $ take 30000 $ repeat 0
 
 #ifdef ASCII_IO
 
@@ -125,7 +129,21 @@ main = do
     then putStrLn "Should pass one argument: name of the file"
     else do
         content <- readFile $ head args
-        putStrLn content
-        _ <- process init_state (filter (`elem` "+-><,.[]") content)
-        putStrLn ""
-        return ()
+        let instructions = (filter (`elem` "+-><,.[]") content) in
+            do
+                --putStrLn instructions
+                _ <- process init_state instructions
+                --putStrLn ""
+                return ()
+
+{-
+main :: IO ()
+main = do
+    args <- getArgs
+    if length args /= 1
+    then putStrLn "Should pass one argument: name of the file"
+    else do
+        content <- readFile $ head args
+        let instructions = (filter (`elem` "+-><,.[]") content) in
+            putStrLn $ instructions ++ "\n" ++ (show (getPairedBracketIdx instructions 0))
+-}

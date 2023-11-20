@@ -1,2 +1,6 @@
 main
+interpreter
 Main_preprocessed.hs
+*.hi
+*.o
+*/result
