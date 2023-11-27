@@ -67,7 +67,7 @@ init_state = State (take 30000 $ repeat 0) RUNNING
 
 {-
 Тут пришлось добавить препроцессирование. Дело в том, что в оригинале исполнитель
-должен считывать и выводить ascii символы, а вычисление производить над их кодами.
+должен считывать и выводить ASCII символы, а вычисление производить над их кодами.
 
 Однако отлаживать программы с подобным поведением довольно трудно, так что если
 не определен флаг ASCII_IO, то интерпретатор работает не с ASCII символами, а с
@@ -75,13 +75,13 @@ init_state = State (take 30000 $ repeat 0) RUNNING
 -}
 #ifdef ASCII_IO
 
--- Читает ascii-символ с stdin на ячейку под кареткой
+-- Читает ASCII символ с stdin на ячейку под кареткой
 get :: State -> IO State
 get (State (_:xs) stat) = do
     c <- getChar
     return $ State ((ord c):xs) stat
 
--- Выводит ascii-символ с ячейки под кареткой в stdout
+-- Выводит ASCII символ с ячейки под кареткой в stdout
 put :: State -> IO State
 put state = do
     putChar $ chr $ first state
@@ -121,18 +121,18 @@ sub (State (x:xs) stat) = do
     else return $ State ((x-1):xs) stat
 
 -- Сдвигает каретку вправо по ленте. В данный момент по факту производит циклический
--- сдвиг ленты влево
+-- сдвиг ленты влево относительно каретки
 moveRight :: State -> IO State
 moveRight (State (x:xs) stat) = return $ State (xs ++ [x]) stat
 
 -- Сдвигает каретку влево по ленте. В данный момент по факту производит циклический
--- сдвиг ленты вправо
+-- сдвиг ленты вправо относительно каретки
 moveLeft :: State -> IO State
 moveLeft (State mem stat) =
     let (head, last) = splitAt (length mem - 1) mem in
         return $ State (last ++ head) stat
 
--- Объевление функции, которая применяет к текущему состоянию набор инструкций
+-- Объявление функции, которая применяет к текущему состоянию набор инструкций
 process :: State -> Instructions -> IO State
 
 
@@ -190,8 +190,8 @@ process state@(State mem stat) ('[':cs) = do
     case extractCycle ('[':cs) of 
         Nothing -> return $ State mem (ERROR "Not enought ']'")
         Just (cycle, remain) -> do
-            new_state <- untilZero state cycle
-            process new_state remain
+            new_state <- untilZero state cycle  -- Применение цикла
+            process new_state remain            -- Выполнение остатка программы
 
 -- ']' - это инструкция конца цикла. В правильно написанной программе исполнитель не должен
 -- доходить до этого места, так как все ']', имеющее парное '[' устраняются на стадии выделения
@@ -204,6 +204,7 @@ process (State mem stat) (']':cs) =
 process (State mem stat) (c:cs) = do
     return $ State mem (ERROR ("Unexpected command:" ++ [c]))
 
+-- Выводит ошибку, если есть
 printError :: State -> IO ()
 printError (State _ (ERROR msg)) = putStrLn msg
 printError _ = return ()
@@ -219,17 +220,7 @@ main = do
         content <- readFile $ head args
         -- Отфильтровываем все символы, которые не являются управляющими
         result <- let instructions = (filter (`elem` "+-><,.[]") content) in
+            -- Запускаем интерпретацию
             process init_state instructions
+        -- Выводим ошибку (если есть)
         printError result
-
-{-
-main :: IO ()
-main = do
-    args <- getArgs
-    if length args /= 1
-    then putStrLn "Should pass one argument: name of the file"
-    else do
-        content <- readFile $ head args
-        let instructions = (filter (`elem` "+-><,.[]") content) in
-            putStrLn $ instructions ++ "\n" ++ (show (getPairedBracketIdx instructions 0))
--}
